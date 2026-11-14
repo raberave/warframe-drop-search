@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WARFRAME ドロップテーブル検索 | Orokin Archive</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans JP"', 'Inter', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+          },
+          colors: {
+            orokin: {
+              bg: '#080c14',
+              panel: '#0f172a',
+              card: '#131d33',
+              border: '#1e293b',
+              gold: '#d4af37',
+              goldLight: '#f3d06b',
+              cyan: '#38bdf8',
+              cyanDark: '#0284c7',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #080c14;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.06) 0%, transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(212, 175, 55, 0.06) 0%, transparent 45%);
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #080c14;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+
+    /* Orokin HUD subtle corner accents */
+    .hud-panel {
+      position: relative;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.18);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    }
+
+    .hud-panel::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: -1px;
+      width: 14px;
+      height: 14px;
+      border-top: 2px solid #d4af37;
+      border-left: 2px solid #d4af37;
+      border-top-left-radius: 0.75rem;
+      pointer-events: none;
+    }
+
+    .hud-panel::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      right: -1px;
+      width: 14px;
+      height: 14px;
+      border-bottom: 2px solid #38bdf8;
+      border-right: 2px solid #38bdf8;
+      border-bottom-right-radius: 0.75rem;
+      pointer-events: none;
+    }
+
+    mark {
+      background-color: rgba(212, 175, 55, 0.3);
+      color: #fde68a;
+      padding: 0 2px;
+      border-radius: 3px;
+      font-weight: 600;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+    .animate-pulse-glow {
+      animation: pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-amber-500/30 selection:text-amber-200">
+
+  <!-- Top Header -->
+  <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <!-- Warframe Lotus-inspired Geometric SVG Icon -->
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-sky-500/20 border border-amber-400/40 flex items-center justify-center shadow-lg shadow-amber-500/10 shrink-0">
+          <svg class="w-6 h-6 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 2L15.5 9L22 12L15.5 15L12 22L8.5 15L2 12L8.5 9L12 2Z" />
+            <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg sm:text-xl font-bold tracking-wide text-slate-100">
+              WARFRAME <span class="text-amber-400">DROP ARCHIVE</span>
+            </h1>
+            <span class="hidden md:inline-block text-[11px] font-mono px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/30">
+              PC OFFICIAL TABLE
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">公式ドロップテーブル（hnfvc0o3jnfvc873njb03enrf56.html）リアルタイム検索</p>
+        </div>
+      </div>
+
+      <!-- Status & Data Source Controls -->
+      <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+        <div id="statusBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700/80 text-xs">
+          <span id="statusDot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse-glow"></span>
+          <span id="statusText" class="text-slate-300 font-medium">初期化中...</span>
+        </div>
+
+        <button id="reloadBtn" type="button" title="公式サーバーから再取得"
+          class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600/60 text-xs font-medium transition flex items-center gap-1.5 cursor-pointer">
+          <svg class="w-3.5 h-3.5 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>再読込</span>
+        </button>
+
+        <label for="localFileInput" title="ダウンロード済みの公式HTMLファイルを手動で読み込む"
+          class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600/60 text-xs font-medium transition flex items-center gap-1.5 cursor-pointer">
+          <svg class="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+          <span>HTML読込</span>
+        </label>
+        <input id="localFileInput" type="file" accept=".html,.htm" class="hidden">
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Loading / Error / Fallback Banner -->
+    <section id="loadingBanner" class="hud-panel rounded-xl p-5 transition-all">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="space-y-1.5 flex-1">
+          <div class="flex items-center gap-2">
+            <svg id="loadingSpinner" class="animate-spin h-5 w-5 text-sky-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <h2 id="bannerTitle" class="text-sm sm:text-base font-bold text-slate-100">
+              公式ドロップテーブルを取得しています...
+            </h2>
+          </div>
+          <p id="bannerDesc" class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+            DigitalOcean CDN上の公式HTML（約8〜12MB）をダウンロードして解析中です。直接通信がCORS制限でブロックされた場合は自動的にプロキシ経由へフォールバックします。
+          </p>
+          <!-- Progress Bar -->
+          <div class="w-full bg-slate-800/90 rounded-full h-2 overflow-hidden mt-2 border border-slate-700/50">
+            <div id="progressBar" class="bg-gradient-to-r from-sky-500 via-amber-400 to-sky-400 h-full rounded-full transition-all duration-300" style="width: 15%"></div>
+          </div>
+        </div>
+
+        <!-- Fallback Action Buttons (Shown if network fails or user wants demo) -->
+        <div id="fallbackActions" class="hidden flex-wrap items-center gap-2 shrink-0">
+          <a href="https://warframe-web-assets.nyc3.cdn.digitaloceanspaces.com/uploads/cms/hnfvc0o3jnfvc873njb03enrf56.html" target="_blank" rel="noopener noreferrer"
+            class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/30 text-xs font-medium transition">
+            公式HTMLを直接開く ↗
+          </a>
+          <button id="loadDemoBtn" type="button"
+            class="px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-medium transition cursor-pointer">
+            サンプルデータで試す
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Search & Filter Controls -->
+    <section class="hud-panel rounded-xl p-4 sm:p-6 space-y-5">
+      <!-- Search Bar Row -->
+      <div class="space-y-2">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+          <label for="searchInput" class="text-xs sm:text-sm font-semibold text-amber-400/90 tracking-wide flex items-center gap-1.5">
+            <span>アイテム・レリック・ミッション・敵名で検索</span>
+          </label>
+          <span class="text-[11px] text-slate-400">
+            ※公式データは英語表記です（主要な日本語名も自動変換して検索できます）
+          </span>
+        </div>
+
+        <div class="relative flex items-center">
+          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            id="searchInput"
+            type="text"
+            autocomplete="off"
+            placeholder="例: Gauss Prime, Axi G12, Condition Overload, フォーマ, 設計図, Apollo..."
+            class="w-full pl-11 pr-24 py-3.5 bg-slate-950/90 border border-slate-700 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 rounded-xl text-sm sm:text-base text-slate-100 placeholder-slate-500 outline-none transition"
+          />
+          <button
+            id="clearSearchBtn"
+            type="button"
+            class="hidden absolute right-3 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 transition cursor-pointer"
+          >
+            クリア
+          </button>
+        </div>
+
+        <!-- Quick Search Suggestion Chips & JP Translation Hint -->
+        <div class="flex flex-wrap items-center gap-1.5 pt-1">
+          <span class="text-[11px] text-slate-500 mr-1">検索例:</span>
+          <button type="button" class="quick-chip px-2.5 py-1 rounded-md bg-slate-800/80 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700/70 transition cursor-pointer" data-query="Prime Blueprint">Prime Blueprint</button>
+          <button type="button" class="quick-chip px-2.5 py-1 rounded-md bg-slate-800/80 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700/70 transition cursor-pointer" data-query="Forma Blueprint">Forma (フォーマ)</button>
+          <button type="button" class="quick-chip px-2.5 py-1 rounded-md bg-slate-800/80 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700/70 transition cursor-pointer" data-query="Condition Overload">Condition Overload</button>
+          <button type="button" class="quick-chip px-2.5 py-1 rounded-md bg-slate-800/80 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700/70 transition cursor-pointer" data-query="Lith">Lith レリック</button>
+          <button type="button" class="quick-chip px-2.5 py-1 rounded-md bg-slate-800/80 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700/70 transition cursor-pointer" data-query="Endo">Endo</button>
+          <button type="button" class="quick-chip px-2.5 py-1 rounded-md bg-slate-800/80 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700/70 transition cursor-pointer" data-query="Aya">Aya (アヤ)</button>
+        </div>
+
+        <!-- Active Japanese-to-English Translation Notice -->
+        <div id="translationHint" class="hidden text-xs text-sky-300 bg-sky-950/50 border border-sky-500/30 rounded-lg px-3 py-2 flex items-center gap-2">
+          <svg class="w-4 h-4 text-sky-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+          </svg>
+          <span id="translationHintText"></span>
+        </div>
+      </div>
+
+      <!-- Category Filter Tabs & Sorting -->
+      <div class="pt-3 border-t border-slate-800/80 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <!-- Category Tabs -->
+        <div id="categoryTabs" class="flex flex-wrap items-center gap-1.5">
+          <button type="button" data-category="ALL" class="cat-tab active px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-400/50 transition cursor-pointer">
+            すべて <span class="count-badge ml-1 text-[11px] opacity-80">(0)</span>
+          </button>
+          <button type="button" data-category="MISSION" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-700/70 transition cursor-pointer">
+            ミッション報酬 <span class="count-badge ml-1 text-[11px] opacity-80">(0)</span>
+          </button>
+          <button type="button" data-category="RELIC" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-700/70 transition cursor-pointer">
+            レリック <span class="count-badge ml-1 text-[11px] opacity-80">(0)</span>
+          </button>
+          <button type="button" data-category="BOUNTY" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-700/70 transition cursor-pointer">
+            依頼・オープンワールド <span class="count-badge ml-1 text-[11px] opacity-80">(0)</span>
+          </button>
+          <button type="button" data-category="ENEMY" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-700/70 transition cursor-pointer">
+            敵ドロップ <span class="count-badge ml-1 text-[11px] opacity-80">(0)</span>
+          </button>
+          <button type="button" data-category="MOD_BLUEPRINT" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-700/70 transition cursor-pointer">
+            MOD・設計図別 <span class="count-badge ml-1 text-[11px] opacity-80">(0)</span>
+          </button>
+          <button type="button" data-category="OTHER" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-700/70 transition cursor-pointer">
+            その他・キー <span class="count-badge ml-1 text-[11px] opacity-80">(0)</span>
+          </button>
+        </div>
+
+        <!-- Sort & Search Scope Controls -->
+        <div class="flex flex-wrap items-center gap-2 shrink-0">
+          <select id="searchScopeSelect" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-sky-400">
+            <option value="ALL">検索対象: すべて (アイテム＋入手先)</option>
+            <option value="ITEM">検索対象: アイテム名のみ</option>
+            <option value="SOURCE">検索対象: 入手先・ミッション名のみ</option>
+          </select>
+
+          <select id="sortSelect" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-sky-400">
+            <option value="CHANCE_DESC">並び順: ドロップ率が高い順</option>
+            <option value="CHANCE_ASC">並び順: ドロップ率が低い順</option>
+            <option value="SOURCE_ASC">並び順: 入手先名 (A → Z)</option>
+            <option value="ITEM_ASC">並び順: アイテム名 (A → Z)</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Summary Bar -->
+    <div id="resultsHeader" class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+      <div class="text-xs sm:text-sm text-slate-300">
+        検索結果: <span id="matchCount" class="font-bold text-amber-400 font-mono text-base">0</span> 件
+        <span id="totalIndexedInfo" class="text-xs text-slate-500 ml-2"></span>
+      </div>
+      <div id="relicRefinementNote" class="hidden text-xs text-slate-400">
+        ※レリックは精錬状態（Intact / Exceptional / Flawless / Radiant）ごとに表示されます
+      </div>
+    </div>
+
+    <!-- Results Container -->
+    <section id="resultsContainer" class="space-y-3">
+      <!-- Empty / Initial State -->
+      <div id="emptyState" class="hud-panel rounded-xl p-10 text-center space-y-3">
+        <div class="w-12 h-12 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center mx-auto text-slate-400">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <h3 id="emptyStateTitle" class="text-base font-semibold text-slate-200">データを読み込み中です...</h3>
+        <p id="emptyStateDesc" class="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto">
+          データの解析が完了すると、検索欄に入力したキーワードに一致するドロップテーブルの項目がここに一覧表示されます。
+        </p>
+      </div>
+    </section>
+
+    <!-- Load More Pagination Button -->
+    <div id="loadMoreWrapper" class="hidden text-center pt-2 pb-8">
+      <button id="loadMoreBtn" type="button"
+        class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/40 text-sm font-medium transition shadow-lg cursor-pointer">
+        さらに表示する (<span id="remainingCount">0</span> 件残り)
+      </button>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/80 bg-slate-950/60 mt-12 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+      <div>
+        参照元: <a href="https://warframe-web-assets.nyc3.cdn.digitaloceanspaces.com/uploads/cms/hnfvc0o3jnfvc873njb03enrf56.html" target="_blank" rel="noopener noreferrer" class="text-sky-400/80 hover:text-sky-300 underline">Digital Extremes 公式 Warframe PC Drop Tables</a>
+      </div>
+      <div>
+        Warframe and the Warframe logo are registered trademarks of Digital Extremes Ltd.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    /**
+     * WARFRAME Official Drop Table Search Engine
+     * Parses `hnfvc0o3jnfvc873njb03enrf56.html` directly in the browser with automatic CORS fallbacks,
+     * Japanese-to-English dictionary translation support, category filtering, and fast chunked rendering.
+     */
+
+    const OFFICIAL_DROP_URL = 'https://warframe-web-assets.nyc3.cdn.digitaloceanspaces.com/uploads/cms/hnfvc0o3jnfvc873njb03enrf56.html';
+
+    // CORS Proxy fallback chain
+    const FETCH_STRATEGIES = [
+      {
+        name: 'Cloudflare Pages Proxy (/api/drops)',
+        url: '/api/drops'
+      },
+      {
+        name: '公式CDN (直接取得)',
+        url: OFFICIAL_DROP_URL
+      },
+      {
+        name: 'CORS Proxy (AllOrigins)',
+        url: `https://api.allorigins.win/raw?url=${encodeURIComponent(OFFICIAL_DROP_URL)}`
+      },
+      {
+        name: 'CORS Proxy (CorsProxy.io)',
+        url: `https://corsproxy.io/?${encodeURIComponent(OFFICIAL_DROP_URL)}`
+      },
+      {
+        name: 'CORS Proxy (CodeTabs)',
+        url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(OFFICIAL_DROP_URL)}`
+      }
+    ];
+
+    // Common Japanese -> English Warframe terminology dictionary to assist Japanese searches
+    const JP_TO_EN_DICT = {
+      '設計図': 'Blueprint',
+      'シャーシ': 'Chassis',
+      'ニューロティック': 'Neuroptics',
+      'システム': 'Systems',
+      'バレル': 'Barrel',
+      'レシーバー': 'Receiver',
+      'ストック': 'Stock',
+      'ブレード': 'Blade',
+      'ハンドル': 'Handle',
+      'リンク': 'Link',
+      'グリップ': 'Grip',
+      'ストリング': 'String',
+      'リム': 'Limb',
+      'プライム': 'Prime',
+      'フォーマ': 'Forma',
+      'オロキンカタリスト': 'Orokin Catalyst',
+      'オロキンリアクター': 'Orokin Reactor',
+      'エクシラス': 'Exilus',
+      'アヤ': 'Aya',
+      'エンド': 'Endo',
+      'レリック': 'Relic',
+      'アルケイン': 'Arcane',
+      'スタンス': 'Stance',
+      'オーラ': 'Aura',
+      '分裂': 'Disruption',
+      '耐久': 'Survival',
+      '防衛': 'Defense',
+      '傍受': 'Interception',
+      '掃滅': 'Exterminate',
+      '確保': 'Capture',
+      '潜入': 'Spy',
+      '救出': 'Rescue',
+      '発掘': 'Excavation',
+      '妨害': 'Sabotage',
+      '抹殺': 'Assassination',
+      '鋼の道のり': 'Steel Path',
+      'エイドロン': 'Eidolon',
+      'プロフィットテイカー': 'Profit-Taker',
+      'エクスプロイター': 'Exploiter'
+    };
+
+    // Application State
+    const state = {
+      entries: [],          // Parsed drop entries: { id, category, sectionTitle, source, rotation, item, rarity, chance, chanceText, searchBlob }
+      filteredEntries: [],  // Currently matched & sorted entries
+      activeCategory: 'ALL',
+      searchQuery: '',
+      searchScope: 'ALL',
+      sortBy: 'CHANCE_DESC',
+      renderLimit: 100,
+      isLoaded: false
+    };
+
+    // DOM Elements
+    const el = {
+      statusDot: document.getElementById('statusDot'),
+      statusText: document.getElementById('statusText'),
+      reloadBtn: document.getElementById('reloadBtn'),
+      localFileInput: document.getElementById('localFileInput'),
+      loadingBanner: document.getElementById('loadingBanner'),
+      loadingSpinner: document.getElementById('loadingSpinner'),
+      bannerTitle: document.getElementById('bannerTitle'),
+      bannerDesc: document.getElementById('bannerDesc'),
+      progressBar: document.getElementById('progressBar'),
+      fallbackActions: document.getElementById('fallbackActions'),
+      loadDemoBtn: document.getElementById('loadDemoBtn'),
+      searchInput: document.getElementById('searchInput'),
+      clearSearchBtn: document.getElementById('clearSearchBtn'),
+      translationHint: document.getElementById('translationHint'),
+      translationHintText: document.getElementById('translationHintText'),
+      categoryTabs: document.getElementById('categoryTabs'),
+      searchScopeSelect: document.getElementById('searchScopeSelect'),
+      sortSelect: document.getElementById('sortSelect'),
+      matchCount: document.getElementById('matchCount'),
+      totalIndexedInfo: document.getElementById('totalIndexedInfo'),
+      relicRefinementNote: document.getElementById('relicRefinementNote'),
+      resultsContainer: document.getElementById('resultsContainer'),
+      emptyState: document.getElementById('emptyState'),
+      emptyStateTitle: document.getElementById('emptyStateTitle'),
+      emptyStateDesc: document.getElementById('emptyStateDesc'),
+      loadMoreWrapper: document.getElementById('loadMoreWrapper'),
+      loadMoreBtn: document.getElementById('loadMoreBtn'),
+      remainingCount: document.getElementById('remainingCount')
+    };
+
+    /**
+     * Classify section header into standardized categories
+     */
+    function classifySection(sectionTitle) {
+      const lower = sectionTitle.toLowerCase();
+      if (lower.includes('relic')) return 'RELIC';
+      if (lower.includes('bounty') || lower.includes('cetus') || lower.includes('solaris') || lower.includes('deimos') || lower.includes('zariman') || lower.includes('entrati') || lower.includes('hex')) {
+        return 'BOUNTY';
+      }
+      if (lower.includes('mission')) return 'MISSION';
+      if (lower.includes('mod drops by') || lower.includes('blueprint/part drops') || lower.includes('drops by')) {
+        return 'MOD_BLUEPRINT';
+      }
+      if (lower.includes('enemy') || lower.includes('sigil') || lower.includes('resource')) {
+        return 'ENEMY';
+      }
+      return 'OTHER';
+    }
+
+    /**
+     * Parse drop percentage & rarity string like "Rare (2.00%)" or "Uncommon (11.00%)" or "25.84%"
+     */
+    function parseChanceAndRarity(rawText) {
+      const text = rawText.trim();
+      let chance = 0;
+      let rarity = '';
+
+      const pctMatch = text.match(/([\d.]+)\s*%/);
+      if (pctMatch) {
+        chance = parseFloat(pctMatch[1]) || 0;
+      }
+
+      const rarityMatch = text.match(/^(Common|Uncommon|Rare|Legendary|Ultra Rare)/i);
+      if (rarityMatch) {
+        rarity = rarityMatch[1];
+      } else {
+        // Infer rarity by percentage if not explicitly labeled
+        if (chance >= 20) rarity = 'Common';
+        else if (chance >= 10) rarity = 'Uncommon';
+        else if (chance > 0) rarity = 'Rare';
+      }
+
+      return { chance, rarity, chanceText: text };
+    }
+
+    /**
+     * Fast DOM-based parser for Warframe's official drop table HTML
+     * Official structure uses <h3> for section titles and <table> with <th> headers & <tr><td> rows.
+     */
+    function parseWarframeDropHtml(htmlString) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlString, 'text/html');
+      const entries = [];
+      let entryId = 0;
+
+      // Walk through h3 headings and tables in document order
+      const elements = doc.body.querySelectorAll('h3, table');
+      let currentSection = 'General Drops';
+      let currentCategory = 'OTHER';
+
+      elements.forEach((node) => {
+        if (node.tagName === 'H3') {
+          currentSection = node.textContent.trim();
+          currentCategory = classifySection(currentSection);
+          return;
+        }
+
+        if (node.tagName === 'TABLE') {
+          const rows = node.querySelectorAll('tr');
+          let currentSource = '';
+          let currentRotation = '';
+          let tableMode = 'STANDARD'; // 'STANDARD' (Item | Chance) or 'ENEMY_SOURCE' (Source | ModDropChance | Item | Chance)
+
+          rows.forEach((tr) => {
+            const ths = tr.querySelectorAll('th');
+            if (ths.length > 0) {
+              // Header row: can be a single colspan header (Mission/Relic/Enemy name) or subheader (Rotation A/B/C)
+              if (ths.length === 1) {
+                const headerText = ths[0].textContent.trim();
+                if (!headerText) return;
+
+                if (/^Rotation\s+[A-Z0-9]+$/i.test(headerText)) {
+                  currentRotation = headerText;
+                } else {
+                  currentSource = headerText;
+                  currentRotation = '';
+                  tableMode = 'STANDARD';
+                }
+              } else if (ths.length === 2) {
+                // Usually ["Item Name", "Chance"] or ["Source", "Chance"]
+                const col0 = ths[0].textContent.trim().toLowerCase();
+                if (col0 === 'source' || col0 === 'enemy') {
+                  tableMode = 'REVERSE_LOOKUP';
+                } else {
+                  tableMode = 'STANDARD';
+                }
+              } else if (ths.length >= 3) {
+                // E.g. Enemy Drop Tables: [Enemy Name, Mod Drop Chance, Item Name, Chance]
+                tableMode = 'MULTI_COL';
+              }
+              return;
+            }
+
+            const tds = tr.querySelectorAll('td');
+            if (tds.length === 0) return;
+
+            // Skip blank spacer rows
+            if (tds.length === 1 && tds[0].classList.contains('blank-row')) return;
+
+            if (tds.length === 2) {
+              const col0 = tds[0].textContent.trim();
+              const col1 = tds[1].textContent.trim();
+              if (!col0 && !col1) return;
+
+              let source = currentSource || currentSection;
+              let item = col0;
+              let rawChance = col1;
+
+              // In "Mod Drops by Mod" or "Blueprint/Part Drops", currentSource is the Item, and col0 is the Enemy/Source
+              if (
+                tableMode === 'REVERSE_LOOKUP' ||
+                currentSection.toLowerCase().includes('drops by mod') ||
+                currentSection.toLowerCase().includes('drops by blueprint')
+              ) {
+                item = currentSource;
+                source = col0;
+              }
+
+              const parsed = parseChanceAndRarity(rawChance);
+              entries.push({
+                id: ++entryId,
+                category: currentCategory,
+                sectionTitle: currentSection,
+                source: source,
+                rotation: currentRotation,
+                item: item,
+                rarity: parsed.rarity,
+                chance: parsed.chance,
+                chanceText: parsed.chanceText,
+                sourceLower: source.toLowerCase(),
+                itemLower: item.toLowerCase()
+              });
+            } else if (tds.length >= 3) {
+              // Multi-column table (e.g. Enemy Name | Drop Chance | Item | Item Chance)
+              const enemyOrSource = tds[0].textContent.trim() || currentSource;
+              if (tds[0].textContent.trim()) {
+                currentSource = tds[0].textContent.trim();
+              }
+              const item = tds[tds.length - 2].textContent.trim();
+              const rawChance = tds[tds.length - 1].textContent.trim();
+              if (!item) return;
+
+              const parsed = parseChanceAndRarity(rawChance);
+              entries.push({
+                id: ++entryId,
+                category: currentCategory,
+                sectionTitle: currentSection,
+                source: enemyOrSource,
+                rotation: currentRotation,
+                item: item,
+                rarity: parsed.rarity,
+                chance: parsed.chance,
+                chanceText: parsed.chanceText,
+                sourceLower: enemyOrSource.toLowerCase(),
+                itemLower: item.toLowerCase()
+              });
+            }
+          });
+        }
+      });
+
+      return entries;
+    }
+
+    /**
+     * Fetch official HTML with automatic fallback across CORS proxies
+     */
+    async function fetchDropTableWithFallback() {
+      setLoadingState(true, '公式ドロップテーブルを取得中...', 'DigitalOcean CDNおよびCORSプロキシ経由でデータを取得しています。');
+      el.fallbackActions.classList.add('hidden');
+
+      for (let i = 0; i < FETCH_STRATEGIES.length; i++) {
+        const strategy = FETCH_STRATEGIES[i];
+        const pct = 15 + i * 20;
+        el.progressBar.style.width = `${pct}%`;
+        el.bannerTitle.textContent = `データ取得中 (${i + 1}/${FETCH_STRATEGIES.length}): ${strategy.name}`;
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+          const response = await fetch(strategy.url, {
+            signal: controller.signal,
+            cache: 'default'
+          });
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          el.bannerTitle.textContent = 'HTMLデータをダウンロード完了。テーブル構造を解析中...';
+          el.progressBar.style.width = '85%';
+
+          const htmlText = await response.text();
+          if (!htmlText || htmlText.length < 5000 || !htmlText.includes('<table')) {
+            throw new Error('有効なドロップテーブルHTMLではありませんでした');
+          }
+
+          // Allow UI to repaint before heavy DOMParser work
+          await new Promise((r) => setTimeout(r, 30));
+
+          const parsedEntries = parseWarframeDropHtml(htmlText);
+          if (parsedEntries.length === 0) {
+            throw new Error('ドロップ項目の抽出結果が0件でした');
+          }
+
+          onDataReady(parsedEntries, `${strategy.name} から取得完了`);
+          return;
+        } catch (err) {
+          console.warn(`[DropTable] ${strategy.name} failed:`, err);
+        }
+      }
+
+      // All network strategies failed
+      el.loadingSpinner.classList.add('hidden');
+      el.progressBar.style.width = '100%';
+      el.progressBar.classList.remove('from-sky-500', 'via-amber-400', 'to-sky-400');
+      el.progressBar.classList.add('bg-rose-500');
+
+      el.statusDot.className = 'w-2 h-2 rounded-full bg-rose-500';
+      el.statusText.textContent = '自動取得失敗';
+
+      el.bannerTitle.textContent = '自動取得がブロックされました（CORS制限またはネットワークエラー）';
+      el.bannerDesc.innerHTML =
+        'ブラウザのセキュリティ制限により外部URLを直接読み込めませんでした。右のボタンから<strong>公式HTMLを別タブで保存して「HTML読込」からアップロード</strong>するか、<strong>「サンプルデータで試す」</strong>をご利用ください。';
+      el.fallbackActions.classList.remove('hidden');
+      el.fallbackActions.classList.add('flex');
+
+      el.emptyStateTitle.textContent = 'データがまだ読み込まれていません';
+      el.emptyStateDesc.textContent = '上部の「HTML読込」から保存した公式ファイルを選択するか、「サンプルデータで試す」をクリックしてください。';
+    }
+
+    /**
+     * Handle successful data load
+     */
+    function onDataReady(entries, sourceLabel) {
+      state.entries = entries;
+      state.isLoaded = true;
+
+      el.progressBar.style.width = '100%';
+      el.loadingSpinner.classList.add('hidden');
+      el.statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+      el.statusText.textContent = `${entries.length.toLocaleString()} 件ロード済`;
+      el.totalIndexedInfo.textContent = `(全 ${entries.length.toLocaleString()} エントリ中 / ${sourceLabel})`;
+
+      // Hide loading banner smoothly after brief confirmation
+      el.bannerTitle.textContent = `解析完了: ${entries.length.toLocaleString()} 件のドロップデータをインデックス化しました`;
+      el.bannerDesc.textContent = '検索バーにアイテム名・レリック名・惑星/ミッション名を入力すると即座にドロップ率を表示します。';
+      setTimeout(() => {
+        el.loadingBanner.classList.add('hidden');
+      }, 2800);
+
+      // Run initial search (or show popular sample query if empty)
+      performSearch();
+    }
+
+    /**
+     * Set loading UI state
+     */
+    function setLoadingState(isLoading, title, desc) {
+      el.loadingBanner.classList.remove('hidden');
+      if (isLoading) {
+        el.loadingSpinner.classList.remove('hidden');
+        el.progressBar.classList.remove('bg-rose-500');
+        el.progressBar.classList.add('from-sky-500', 'via-amber-400', 'to-sky-400');
+        el.statusDot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse-glow';
+        el.statusText.textContent = '取得中...';
+      }
+      if (title) el.bannerTitle.textContent = title;
+      if (desc) el.bannerDesc.textContent = desc;
+    }
+
+    /**
+     * Translate Japanese keywords in query to English equivalents if present
+     */
+    function expandJapaneseQuery(rawQuery) {
+      let translated = rawQuery;
+      const appliedMappings = [];
+
+      // Sort keys longest first to avoid partial replacements
+      const keys = Object.keys(JP_TO_EN_DICT).sort((a, b) => b.length - a.length);
+      for (const jpKey of keys) {
+        if (translated.includes(jpKey)) {
+          const enVal = JP_TO_EN_DICT[jpKey];
+          translated = translated.split(jpKey).join(` ${enVal} `);
+          appliedMappings.push(`${jpKey} → ${enVal}`);
+        }
+      }
+
+      return {
+        effectiveQuery: translated.replace(/\s+/g, ' ').trim(),
+        appliedMappings
+      };
+    }
+
+    /**
+     * Filter, categorize, and sort entries based on current state
+     */
+    function performSearch() {
+      if (!state.isLoaded) return;
+
+      const rawQuery = el.searchInput.value.trim();
+      state.searchQuery = rawQuery;
+      state.renderLimit = 100;
+
+      if (rawQuery.length > 0) {
+        el.clearSearchBtn.classList.remove('hidden');
+      } else {
+        el.clearSearchBtn.classList.add('hidden');
+      }
+
+      const { effectiveQuery, appliedMappings } = expandJapaneseQuery(rawQuery);
+
+      if (appliedMappings.length > 0) {
+        el.translationHint.classList.remove('hidden');
+        el.translationHintText.textContent = `日本語キーワードを自動変換して検索中: ${appliedMappings.join(' / ')}`;
+      } else {
+        el.translationHint.classList.add('hidden');
+      }
+
+      // Split into space-separated tokens (AND search)
+      const tokens = effectiveQuery
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((t) => t.length > 0);
+
+      // Category counts for current query
+      const counts = {
+        ALL: 0,
+        MISSION: 0,
+        RELIC: 0,
+        BOUNTY: 0,
+        ENEMY: 0,
+        MOD_BLUEPRINT: 0,
+        OTHER: 0
+      };
+
+      // If no query entered, show a curated default view (e.g., first 200 items or prompt)
+      if (tokens.length === 0) {
+        el.matchCount.textContent = '0';
+        updateCategoryBadges(counts);
+        el.resultsContainer.innerHTML = '';
+        el.emptyStateTitle.textContent = '検索キーワードを入力してください';
+        el.emptyStateDesc.textContent =
+          '例: "Gauss Prime", "Axi", "Condition Overload", "Forma", "Apollo", または日本語で「プライム 設計図」「フォーマ」「分裂」などを入力できます。';
+        el.resultsContainer.appendChild(el.emptyState);
+        el.loadMoreWrapper.classList.add('hidden');
+        el.relicRefinementNote.classList.add('hidden');
+        return;
+      }
+
+      const matched = [];
+      const scope = state.searchScope;
+
+      for (let i = 0; i < state.entries.length; i++) {
+        const entry = state.entries[i];
+        let isMatch = true;
+
+        for (let t = 0; t < tokens.length; t++) {
+          const token = tokens[t];
+          if (scope === 'ITEM') {
+            if (!entry.itemLower.includes(token)) {
+              isMatch = false;
+              break;
+            }
+          } else if (scope === 'SOURCE') {
+            if (!entry.sourceLower.includes(token)) {
+              isMatch = false;
+              break;
+            }
+          } else {
+            if (!entry.itemLower.includes(token) && !entry.sourceLower.includes(token)) {
+              isMatch = false;
+              break;
+            }
+          }
+        }
+
+        if (isMatch) {
+          counts.ALL++;
+          if (counts[entry.category] !== undefined) {
+            counts[entry.category]++;
+          }
+          if (state.activeCategory === 'ALL' || entry.category === state.activeCategory) {
+            matched.push(entry);
+          }
+        }
+      }
+
+      updateCategoryBadges(counts);
+
+      // Sort matched entries
+      matched.sort((a, b) => {
+        switch (state.sortBy) {
+          case 'CHANCE_DESC':
+            return b.chance - a.chance || a.source.localeCompare(b.source);
+          case 'CHANCE_ASC':
+            return a.chance - b.chance || a.source.localeCompare(b.source);
+          case 'SOURCE_ASC':
+            return a.source.localeCompare(b.source) || b.chance - a.chance;
+          case 'ITEM_ASC':
+            return a.item.localeCompare(b.item) || b.chance - a.chance;
+          default:
+            return 0;
+        }
+      });
+
+      state.filteredEntries = matched;
+      el.matchCount.textContent = matched.length.toLocaleString();
+
+      const hasRelics = matched.some((m) => m.category === 'RELIC');
+      if (hasRelics) {
+        el.relicRefinementNote.classList.remove('hidden');
+      } else {
+        el.relicRefinementNote.classList.add('hidden');
+      }
+
+      renderResults(tokens);
+    }
+
+    /**
+     * Update count numbers inside category filter tabs
+     */
+    function updateCategoryBadges(counts) {
+      const buttons = el.categoryTabs.querySelectorAll('.cat-tab');
+      buttons.forEach((btn) => {
+        const cat = btn.getAttribute('data-category');
+        const badge = btn.querySelector('.count-badge');
+        if (badge && counts[cat] !== undefined) {
+          badge.textContent = `(${counts[cat].toLocaleString()})`;
+        }
+      });
+    }
+
+    /**
+     * Escape HTML special characters safely
+     */
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    /**
+     * Highlight matching search tokens in text
+     */
+    function highlightTokens(text, tokens) {
+      let safe = escapeHtml(text);
+      if (!tokens || tokens.length === 0) return safe;
+
+      // Sort tokens by length descending to prevent nested replacement artifacts
+      const sortedTokens = [...new Set(tokens)].sort((a, b) => b.length - a.length);
+      const escapedTokens = sortedTokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      const regex = new RegExp(`(${escapedTokens.join('|')})`, 'gi');
+      return safe.replace(regex, '<mark>$1</mark>');
+    }
+
+    /**
+     * Get badge styling for Category & Rarity
+     */
+    function getCategoryMeta(cat) {
+      switch (cat) {
+        case 'MISSION':
+          return { label: 'ミッション報酬', cls: 'bg-sky-500/15 text-sky-300 border-sky-500/30' };
+        case 'RELIC':
+          return { label: 'レリック', cls: 'bg-amber-500/15 text-amber-300 border-amber-500/30' };
+        case 'BOUNTY':
+          return { label: '依頼報酬', cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' };
+        case 'ENEMY':
+          return { label: '敵ドロップ', cls: 'bg-rose-500/15 text-rose-300 border-rose-500/30' };
+        case 'MOD_BLUEPRINT':
+          return { label: 'MOD・設計図別', cls: 'bg-purple-500/15 text-purple-300 border-purple-500/30' };
+        default:
+          return { label: 'その他', cls: 'bg-slate-700/50 text-slate-300 border-slate-600/50' };
+      }
+    }
+
+    function getRarityColor(rarity, chance) {
+      const r = (rarity || '').toLowerCase();
+      if (r.includes('legendary') || chance <= 1.0) return 'text-rose-400';
+      if (r.includes('rare') || chance <= 6.0) return 'text-amber-400';
+      if (r.includes('uncommon') || chance < 20.0) return 'text-sky-300';
+      return 'text-emerald-300';
+    }
+
+    /**
+     * Render matched items up to current renderLimit
+     */
+    function renderResults(tokens) {
+      const list = state.filteredEntries;
+      el.resultsContainer.innerHTML = '';
+
+      if (list.length === 0) {
+        el.emptyStateTitle.textContent = '一致するアイテム・入手先が見つかりませんでした';
+        el.emptyStateDesc.textContent =
+          '別のキーワードを試すか、カテゴリタブを「すべて」に切り替えてみてください。（例: "Prime", "Relic", "Blueprint"）';
+        el.resultsContainer.appendChild(el.emptyState);
+        el.loadMoreWrapper.classList.add('hidden');
+        return;
+      }
+
+      const slice = list.slice(0, state.renderLimit);
+      const fragment = document.createDocumentFragment();
+
+      slice.forEach((entry) => {
+        const catMeta = getCategoryMeta(entry.category);
+        const chanceColor = getRarityColor(entry.rarity, entry.chance);
+        const barWidth = Math.min(100, Math.max(2, entry.chance));
+
+        const card = document.createElement('div');
+        card.className =
+          'bg-slate-900/80 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-4 transition flex flex-col md:flex-row md:items-center justify-between gap-3';
+
+        card.innerHTML = `
+          <div class="space-y-1.5 min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-[11px] font-medium px-2 py-0.5 rounded border ${catMeta.cls}">
+                ${catMeta.label}
+              </span>
+              ${
+                entry.rotation
+                  ? `<span class="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+                      ${escapeHtml(entry.rotation)}
+                    </span>`
+                  : ''
+              }
+              <span class="text-xs text-slate-400 truncate" title="${escapeHtml(entry.sectionTitle)}">
+                ${escapeHtml(entry.sectionTitle)}
+              </span>
+            </div>
+
+            <div class="text-sm sm:text-base font-bold text-slate-100 break-words">
+              ${highlightTokens(entry.item, tokens)}
+            </div>
+
+            <div class="flex items-center gap-1.5 text-xs sm:text-sm text-sky-300/90 break-words">
+              <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>${highlightTokens(entry.source, tokens)}</span>
+            </div>
+          </div>
+
+          <div class="flex md:flex-col items-center md:items-end justify-between md:justify-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800/80 shrink-0 md:w-44">
+            <div class="text-left md:text-right">
+              <div class="font-mono text-base sm:text-lg font-bold ${chanceColor}">
+                ${entry.chance > 0 ? entry.chance.toFixed(2) + '%' : escapeHtml(entry.chanceText)}
+              </div>
+              <div class="text-[11px] text-slate-400 font-mono">
+                ${escapeHtml(entry.chanceText)}
+              </div>
+            </div>
+            <div class="w-24 md:w-32 bg-slate-800 rounded-full h-1.5 overflow-hidden">
+              <div class="h-full rounded-full bg-gradient-to-r from-sky-400 to-amber-400" style="width: ${barWidth}%"></div>
+            </div>
+          </div>
+        `;
+
+        fragment.appendChild(card);
+      });
+
+      el.resultsContainer.appendChild(fragment);
+
+      // Update Load More button
+      if (list.length > state.renderLimit) {
+        el.loadMoreWrapper.classList.remove('hidden');
+        el.remainingCount.textContent = (list.length - state.renderLimit).toLocaleString();
+      } else {
+        el.loadMoreWrapper.classList.add('hidden');
+      }
+    }
+
+    /**
+     * Built-in realistic sample data fallback in case offline/CORS blocked
+     */
+    function loadSampleDemoData() {
+      const sampleHtml = `
+        <h3>Mission Rewards:</h3>
+        <table>
+          <tr><th colspan="2">Lua/Apollo (Disruption)</th></tr>
+          <tr><th colspan="2">Rotation A</th></tr>
+          <tr><td>Axi A15 Relic</td><td>Uncommon (14.29%)</td></tr>
+          <tr><td>Axi B7 Relic</td><td>Uncommon (14.29%)</td></tr>
+          <tr><th colspan="2">Rotation B</th></tr>
+          <tr><td>Gauss Prime Systems Blueprint</td><td>Rare (5.00%)</td></tr>
+          <tr><td>Axi G12 Relic</td><td>Uncommon (12.50%)</td></tr>
+          <tr><td>Universal Medallion</td><td>Rare (5.00%)</td></tr>
+          <tr><th colspan="2">Rotation C</th></tr>
+          <tr><td>Axi G12 Relic</td><td>Uncommon (12.42%)</td></tr>
+          <tr><td>Lua Lens Blueprint</td><td>Uncommon (12.42%)</td></tr>
+          <tr><td>Forma Blueprint</td><td>Rare (2.00%)</td></tr>
+        </table>
+        <h3>Relics:</h3>
+        <table>
+          <tr><th colspan="2">Axi G12 Relic (Intact)</th></tr>
+          <tr><td>Gauss Prime Blueprint</td><td>Rare (2.00%)</td></tr>
+          <tr><td>Forma Blueprint</td><td>Uncommon (11.00%)</td></tr>
+          <tr><td>Acceltra Prime Receiver</td><td>Uncommon (11.00%)</td></tr>
+          <tr><td>Fang Prime Blueprint</td><td>Common (25.33%)</td></tr>
+          <tr><th colspan="2">Axi G12 Relic (Radiant)</th></tr>
+          <tr><td>Gauss Prime Blueprint</td><td>Rare (10.00%)</td></tr>
+          <tr><td>Forma Blueprint</td><td>Uncommon (20.00%)</td></tr>
+          <tr><td>Acceltra Prime Receiver</td><td>Uncommon (20.00%)</td></tr>
+          <tr><td>Fang Prime Blueprint</td><td>Common (16.67%)</td></tr>
+          <tr><th colspan="2">Lith W4 Relic (Radiant)</th></tr>
+          <tr><td>Wisp Prime Chassis Blueprint</td><td>Rare (10.00%)</td></tr>
+          <tr><td>Fulmin Prime Stock</td><td>Uncommon (20.00%)</td></tr>
+          <tr><td>Braton Prime Blueprint</td><td>Common (16.67%)</td></tr>
+        </table>
+        <h3>Mod Drops by Enemy:</h3>
+        <table>
+          <tr><th colspan="2">Drekar Butcher</th></tr>
+          <tr><td>Condition Overload</td><td>Ultra Rare (0.02%)</td></tr>
+          <tr><td>Pressure Point</td><td>Common (75.88%)</td></tr>
+          <tr><th colspan="2">Corrupted Heavy Gunner</th></tr>
+          <tr><td>Split Chamber</td><td>Rare (0.60%)</td></tr>
+          <tr><td>Vitality</td><td>Common (37.94%)</td></tr>
+        </table>
+        <h3>Cetus Bounty Rewards:</h3>
+        <table>
+          <tr><th colspan="2">Level 40 - 60 Cetus Bounty</th></tr>
+          <tr><th colspan="2">Rotation A</th></tr>
+          <tr><td>Aya</td><td>Uncommon (25.68%)</td></tr>
+          <tr><td>400 Endo</td><td>Common (38.72%)</td></tr>
+          <tr><td>Augur Secrets</td><td>Rare (7.52%)</td></tr>
+        </table>
+      `;
+      const entries = parseWarframeDropHtml(sampleHtml);
+      onDataReady(entries, '内蔵サンプルデータ (オフラインデモ)');
+      el.searchInput.value = 'Gauss Prime';
+      performSearch();
+    }
+
+    // Event Listeners
+    let searchDebounceTimer = null;
+    el.searchInput.addEventListener('input', () => {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(performSearch, 180);
+    });
+
+    el.clearSearchBtn.addEventListener('click', () => {
+      el.searchInput.value = '';
+      el.searchInput.focus();
+      performSearch();
+    });
+
+    document.querySelectorAll('.quick-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        el.searchInput.value = chip.getAttribute('data-query');
+        performSearch();
+      });
+    });
+
+    el.categoryTabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('.cat-tab');
+      if (!btn) return;
+
+      el.categoryTabs.querySelectorAll('.cat-tab').forEach((tab) => {
+        tab.classList.remove('active', 'bg-amber-500/20', 'text-amber-300', 'border-amber-400/50');
+        tab.classList.add('bg-slate-900', 'text-slate-400', 'border-slate-700/70');
+      });
+
+      btn.classList.add('active', 'bg-amber-500/20', 'text-amber-300', 'border-amber-400/50');
+      btn.classList.remove('bg-slate-900', 'text-slate-400', 'border-slate-700/70');
+
+      state.activeCategory = btn.getAttribute('data-category');
+      performSearch();
+    });
+
+    el.searchScopeSelect.addEventListener('change', (e) => {
+      state.searchScope = e.target.value;
+      performSearch();
+    });
+
+    el.sortSelect.addEventListener('change', (e) => {
+      state.sortBy = e.target.value;
+      performSearch();
+    });
+
+    el.loadMoreBtn.addEventListener('click', () => {
+      state.renderLimit += 150;
+      const { effectiveQuery } = expandJapaneseQuery(state.searchQuery);
+      const tokens = effectiveQuery.toLowerCase().split(/\s+/).filter(Boolean);
+      renderResults(tokens);
+    });
+
+    el.reloadBtn.addEventListener('click', () => {
+      fetchDropTableWithFallback();
+    });
+
+    el.loadDemoBtn.addEventListener('click', () => {
+      loadSampleDemoData();
+    });
+
+    // Local HTML file upload handler
+    el.localFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      setLoadingState(true, `ローカルファイル「${file.name}」を読み込み中...`, 'ファイルサイズが大きい場合、解析に数秒かかることがあります。');
+      el.fallbackActions.classList.add('hidden');
+      el.progressBar.style.width = '50%';
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        el.progressBar.style.width = '85%';
+        setTimeout(() => {
+          const parsed = parseWarframeDropHtml(event.target.result);
+          if (parsed.length > 0) {
+            onDataReady(parsed, `ローカルファイル: ${file.name}`);
+          } else {
+            el.loadingSpinner.classList.add('hidden');
+            el.bannerTitle.textContent = '解析エラー';
+            el.bannerDesc.textContent = '選択されたファイルからドロップテーブルを検出できませんでした。公式のHTMLファイルか確認してください。';
+          }
+        }, 40);
+      };
+      reader.readAsText(file);
+    });
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchDropTableWithFallback();
+    });
+  </script>
+</body>
+</html>
